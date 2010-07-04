@@ -1,12 +1,14 @@
 import appuifw, e32, graphics
 import sysinfo
 import key_codes
+import re
 
 #----------------- global variable ----------------#
 x_coor=20
 y_coor=20
 x_inc = 18.7
 y_inc = 18.7
+sequence = []
 
 #----------------- function() ----------------#
 def quit():
@@ -48,6 +50,18 @@ def handle_redraw(rect):
 	#img.blit(img_stone_b, target=(40, 20), source=(0,0), mask=stoneMask)
 	canvas.blit(img)
 
+def read_sgf(f):
+	# current rule works for kgs only...
+	global sequence
+	reg_seq=re.compile(r";(W|B)\[(..)")
+	lines=f.readlines()
+	for i, line in enumerate(lines):
+		result=reg_seq.match(line)
+		if result:
+			#print("%s move %s" % (result.group(1), result.group(2)))
+			sequence.append((result.group(1), result.group(2)))
+			#print sequence[i]
+
 #----------------- main() ----------------#
 ## load image
 #(width, height) = sysinfo.display_pixels()
@@ -61,6 +75,9 @@ stoneMask.load("c:\\Data\\python\\stone_mask.jpg")
 img_stone_w=graphics.Image.open("c:\\Data\\python\\stone_w.jpg")
 img_stone_b=graphics.Image.open("c:\\Data\\python\\stone_b.jpg")
 
+# read sgf file
+f = open("c:\\Data\\python\\game1.sgf")
+read_sgf(f)
 #draw list item text
 #img.text((30,30),u'List Text',(0,0,0),"title")
 

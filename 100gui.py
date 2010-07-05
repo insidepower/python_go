@@ -4,11 +4,53 @@ import key_codes
 import re
 
 #----------------- global variable ----------------#
-x_coor=20
-y_coor=20
 x_inc = 18.7
 y_inc = 18.7
+y_min = 20
+x_min = 1
 sequence = []
+y_map = {'a':y_min,
+		 'b':y_min+(y_inc*1),
+		 'c':y_min+(y_inc*2),
+		 'd':y_min+(y_inc*3),
+		 'e':y_min+(y_inc*4),
+		 'f':y_min+(y_inc*5),
+		 'g':y_min+(y_inc*6),
+		 'h':y_min+(y_inc*7),
+		 'i':y_min+(y_inc*8),
+		 'j':y_min+(y_inc*9),
+		 'k':y_min+(y_inc*10),
+		 'l':y_min+(y_inc*11),
+		 'm':y_min+(y_inc*12),
+		 'n':y_min+(y_inc*13),
+		 'o':y_min+(y_inc*14),
+		 'p':y_min+(y_inc*15),
+		 'q':y_min+(y_inc*16),
+		 'r':y_min+(y_inc*17),
+		 's':y_min+(y_inc*18),
+		 }
+x_map = {'a':x_min,
+		 'b':x_min+(x_inc*1),
+		 'c':x_min+(x_inc*2),
+		 'd':x_min+(x_inc*3),
+		 'e':x_min+(x_inc*4),
+		 'f':x_min+(x_inc*5),
+		 'g':x_min+(x_inc*6),
+		 'h':x_min+(x_inc*7),
+		 'i':x_min+(x_inc*8),
+		 'j':x_min+(x_inc*9),
+		 'k':x_min+(x_inc*10),
+		 'l':x_min+(x_inc*11),
+		 'm':x_min+(x_inc*12),
+		 'n':x_min+(x_inc*13),
+		 'o':x_min+(x_inc*14),
+		 'p':x_min+(x_inc*15),
+		 'q':x_min+(x_inc*16),
+		 'r':x_min+(x_inc*17),
+		 's':x_min+(x_inc*18),
+		 }
+x_coor=x_map['s']
+y_coor=y_map['s']
 
 #----------------- function() ----------------#
 def quit():
@@ -43,9 +85,11 @@ def press_left():
 
 def handle_redraw(rect):
 	img.blit(img_board, (0,0), (0,0))
-	img.blit(img_stone_w, target=(x_coor,y_coor), source=(0,0), mask=stoneMask)
+	img.blit(img_stone_w, target=(x_coor, y_coor), source=(0,0), mask=stoneMask)
 	img.blit(img_stone_b, target=(20, 40), source=(0,0), mask=stoneMask)
 	img.blit(img_stone_w, target=(20, 60), source=(0,0), mask=stoneMask)
+
+	img.text((60,60),u'List Text',(0,0,0),"normal")
 
 	#img.blit(img_stone_b, target=(40, 20), source=(0,0), mask=stoneMask)
 	canvas.blit(img)
@@ -53,11 +97,37 @@ def handle_redraw(rect):
 def read_sgf(f):
 	# current rule works for kgs only...
 	global sequence
+	player_w=""
+	player_w_rank=""
+	player_b=""
+	player_b_rank=""
+	handicap_stone=0
+	komi=""
+	rules=""
+	result=""
 	reg_seq=re.compile(r";(W|B)\[(..)")
 	lines=f.readlines()
+
+	# find out the line the game play sequence started
 	for i, line in enumerate(lines):
 		result=reg_seq.match(line)
 		if result:
+			break
+
+	# get game info
+	for line in lines[0:i]:
+		if player_w=="":
+			#print line
+			result=re.match(r"PW\[(.*?)\]",line)
+			if result:
+				player_w=result.group(1)
+				print player_w
+
+	# get game played sequence
+	for line in lines[i:]:
+		result=reg_seq.match(line)
+		if result:
+			#print result.group()
 			#print("%s move %s" % (result.group(1), result.group(2)))
 			sequence.append((result.group(1), result.group(2)))
 			#print sequence[i]
@@ -84,6 +154,8 @@ read_sgf(f)
 ## hide the virtual directional pad
 #appuifw.app.directional_pad=False;
 canvas=appuifw.Canvas(event_callback=None, redraw_callback=handle_redraw)
+#appuifw.app.title=unicode(player_w +'('+player_w_rank+')'+' vs '+ player_b+'('+player_b_rank+')')
+#appuifw.app.title=u"hahaha"
 appuifw.app.body=canvas
 appuifw.app.exit_key_handler=quit
 appuifw.app.screen='large'

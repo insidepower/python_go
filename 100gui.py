@@ -8,6 +8,8 @@ x_inc = 18.7
 y_inc = 18.7
 y_min = 20
 x_min = 1
+#current_seq = -1
+current_seq = 30
 sequence = []
 y_map = {'a':y_min,
 		 'b':y_min+(y_inc*1),
@@ -74,24 +76,45 @@ def press_up():
 def press_right():
 	global x_coor
 	global x_inc
+	global current_seq
+	current_seq += 1
+	if current_seq>max(sequence)[0]:
+		current_seq=max(sequence)
 	x_coor += x_inc
 	handle_redraw(())
 
 def press_left():
 	global x_coor
 	global x_inc
+	global current_seq
+	current_seq -= 1
+	if current_seq<0:
+		current_seq=0
 	x_coor -= x_inc
 	handle_redraw(())
 
 def handle_redraw(rect):
+	global current_seq
+	count=0
 	img.blit(img_board, (0,0), (0,0))
-	img.blit(img_stone_w, target=(x_coor, y_coor), source=(0,0), mask=stoneMask)
-	img.blit(img_stone_b, target=(20, 40), source=(0,0), mask=stoneMask)
-	img.blit(img_stone_w, target=(20, 60), source=(0,0), mask=stoneMask)
+	#img.blit(img_stone_w, target=(x_coor, y_coor), source=(0,0), mask=stoneMask)
+	#img.blit(img_stone_b, target=(20, 40), source=(0,0), mask=stoneMask)
+	#img.blit(img_stone_w, target=(20, 60), source=(0,0), mask=stoneMask)
 
-	img.text((60,60),u'List Text',(0,0,0),"normal")
+	#img.text((60,60),u'List Text',(0,0,0),"normal")
 
 	#img.blit(img_stone_b, target=(40, 20), source=(0,0), mask=stoneMask)
+
+	if current_seq>=0:
+		print sequence[count]
+		#print ("%d, %d" %(sequence[count][0], sequence[count][1]))
+		## display the sequence from 0 to current_seq
+		while count<=current_seq:
+			if "W"==sequence[count][0]:
+				img.blit(img_stone_w, target=(x_map[sequence[count][1]], y_map[sequence[count][2]]), source=(0,0), mask=stoneMask)
+			if "B"==sequence[count][0]:
+				img.blit(img_stone_b, target=(x_map[sequence[count][1]], y_map[sequence[count][2]]), source=(0,0), mask=stoneMask)
+			count += 1
 	canvas.blit(img)
 
 def read_sgf(f):
@@ -105,7 +128,7 @@ def read_sgf(f):
 	komi=""
 	rules=""
 	result=""
-	reg_seq=re.compile(r";(W|B)\[(..)")
+	reg_seq=re.compile(r";(W|B)\[(.)(.)")
 	lines=f.readlines()
 
 	# find out the line the game play sequence started
@@ -129,8 +152,8 @@ def read_sgf(f):
 		if result:
 			#print result.group()
 			#print("%s move %s" % (result.group(1), result.group(2)))
-			sequence.append((result.group(1), result.group(2)))
-			#print sequence[i]
+			sequence.append((result.group(1), result.group(2), result.group(3)))
+			#print sequence[:]
 
 #----------------- main() ----------------#
 ## load image

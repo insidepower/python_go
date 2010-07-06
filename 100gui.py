@@ -10,7 +10,9 @@ y_inc = 18.7
 y_min = 20
 x_min = 1
 current_seq = -1
-#current_seq = 30
+line_read = 0
+# sequence = [ white/black, x_coor, y_coor, hide after this sequence]
+# ['w', 20, 60, 37] = white, x=20, y=60, hide after current_seq 37
 sequence = []
 y_map = {'a':y_min,
 		 'b':y_min+(y_inc*1),
@@ -55,35 +57,49 @@ x_map = {'a':x_min,
 x_coor=x_map['s']
 y_coor=y_map['s']
 
-#----------------- function() ----------------#
+#----------------- quit() ----------------#
 def quit():
 	app_lock.signal()
 
+#----------------- press_select() ----------------#
 def press_select():
 	print "select"
 
+#----------------- press_down() ----------------#
 def press_down():
 	global y_inc
 	global y_coor
+	global current_seq
+	current_seq -= 20
+	if current_seq<0:
+		current_seq=0
 	y_coor += y_inc
 	handle_redraw(())
 
+#----------------- press_up() ----------------#
 def press_up():
 	global y_inc
 	global y_coor
+	global current_seq
+	current_seq += 20
+	if current_seq>len(sequence):
+		current_seq=len(sequence)-1
 	y_coor -= y_inc
 	handle_redraw(())
 
+#----------------- press_right() ----------------#
 def press_right():
 	global x_coor
 	global x_inc
 	global current_seq
 	current_seq += 1
-	if current_seq>max(sequence)[0]:
-		current_seq=max(sequence)
+	if current_seq>len(sequence):
+		current_seq=len(sequence)-1
+	print ("current_seq=%d" % current_seq)
 	x_coor += x_inc
 	handle_redraw(())
 
+#----------------- press_left() ----------------#
 def press_left():
 	global x_coor
 	global x_inc
@@ -94,20 +110,14 @@ def press_left():
 	x_coor -= x_inc
 	handle_redraw(())
 
+#----------------- handle_redraw() ----------------#
 def handle_redraw(rect):
 	global current_seq
 	count=0
 	img.blit(img_board, (0,0), (0,0))
 	#img.blit(img_stone_w, target=(x_coor, y_coor), source=(0,0), mask=stoneMask)
-	#img.blit(img_stone_b, target=(20, 40), source=(0,0), mask=stoneMask)
-	#img.blit(img_stone_w, target=(20, 60), source=(0,0), mask=stoneMask)
-
-	#img.text((60,60),u'List Text',(0,0,0),"normal")
-
-	#img.blit(img_stone_b, target=(40, 20), source=(0,0), mask=stoneMask)
-
 	if current_seq>=0:
-		print sequence[count]
+		#print sequence[count]
 		#print ("%d, %d" %(sequence[count][0], sequence[count][1]))
 		## display the sequence from 0 to current_seq
 		while count<=current_seq:
@@ -118,6 +128,34 @@ def handle_redraw(rect):
 			count += 1
 	canvas.blit(img)
 
+#----------------- parse_game_info() ----------------#
+def parse_game_info(game_info):
+	global sequence
+	global current_seq
+	#print game_info
+	res=re.search(r"PW\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		player_w = res.group(1)
+	res=re.search(r"PB\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		player_b = res.group(1)
+	res=re.search(r"WR\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		player_w_rank = res.group(1)
+	res=re.search(r"BR\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		player_b_rank = res.group(1)
+	res=re.search(r"HA\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		total_handicap = string.atoi(res.group(1))
+		res=re.search(r"AB"+"\[(..)\]"*total_handicap, game_info, re.DOTALL)
+		cnt=1
+		while cnt<=total_handicap:
+			sequence.append(('B',res.group(cnt)[0], res.group(cnt)[1], 0))
+			cnt +=1
+			current_seq=total_handicap-1
+
+#----------------- read_sgf() ----------------#
 def read_sgf(f):
 	# current rule works for kgs only...
 	global sequence
@@ -141,27 +179,7 @@ def read_sgf(f):
 
 	## get game info
 	game_info = "".join(lines[:i])
-	#print game_info
-	res=re.search(r"PW\[(.*?)\]", game_info, re.DOTALL)
-	if res:
-		player_w = res.group(1)
-	res=re.search(r"PB\[(.*?)\]", game_info, re.DOTALL)
-	if res:
-		player_b = res.group(1)
-	res=re.search(r"WR\[(.*?)\]", game_info, re.DOTALL)
-	if res:
-		player_w_rank = res.group(1)
-	res=re.search(r"BR\[(.*?)\]", game_info, re.DOTALL)
-	if res:
-		player_b_rank = res.group(1)
-	res=re.search(r"HA\[(.*?)\]", game_info, re.DOTALL)
-	if res:
-		total_handicap = string.atoi(res.group(1))
-		res=re.search(r"AB"+"\[(..)\]"*total_handicap, game_info, re.DOTALL)
-		cnt=1
-		while cnt<=total_handicap:
-			sequence.append(res.group(cnt))
-			cnt +=1
+	parse_game_info(game_info);
 
 	#print player_w
 	#print player_b
@@ -170,22 +188,16 @@ def read_sgf(f):
 	#print total_handicap
 	#print sequence
 
-	#for line in lines[0:i]:
-	#	if player_w=="":
-	#		#print line
-	#		result=re.match(r"PW\[(.*?)\]",line)
-	#		if result:
-	#			player_w=result.group(1)
-	#			print player_w
-
 	## get game played sequence
-	#for line in lines[i:]:
-	#	result=reg_seq.match(line)
-	#	if result:
-	#		#print result.group()
-	#		#print("%s move %s" % (result.group(1), result.group(2)))
-	#		sequence.append((result.group(1), result.group(2), result.group(3)))
-	#		#print sequence[:]
+	for line in lines[i:]:
+		result=reg_seq.match(line)
+		if result:
+			#print result.group()
+			#print("%s move %s" % (result.group(1), result.group(2)))
+			sequence.append((result.group(1), result.group(2), result.group(3)))
+			#print sequence[:]
+
+	print len(sequence)
 
 #----------------- main() ----------------#
 ## load image
@@ -222,5 +234,4 @@ canvas.bind(key_codes.EKeyLeftArrow, press_left)
 
 app_lock=e32.Ao_lock()
 app_lock.wait()
-
 

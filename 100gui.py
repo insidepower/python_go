@@ -15,6 +15,7 @@ show_first_move=1
 # sequence = [ white/black, x_coor, y_coor, hide after this sequence]
 # ['w', 20, 60, 37] = white, x=20, y=60, hide after current_seq 37
 sequence = []
+file_path=""
 y_map = {'a':y_min,
 		 'b':y_min+(y_inc*1),
 		 'c':y_min+(y_inc*2),
@@ -105,7 +106,7 @@ def press_right():
 	current_seq += 1
 	if current_seq>len(sequence):
 		current_seq=len(sequence)-1
-	print ("current_seq=%d" % current_seq)
+	#print ("current_seq=%d" % current_seq)
 	x_coor += x_inc
 	handle_redraw(())
 
@@ -207,6 +208,14 @@ def read_sgf(f):
 			sequence.append((result.group(1), result.group(2), result.group(3)))
 			#print sequence[:]
 
+#----------------- open_file() ----------------#
+def open_file():
+	print "open_file"
+
+#----------------- change_path() ----------------#
+def change_path():
+	print "change_path"
+
 #----------------- main() ----------------#
 ## load image
 #(width, height) = sysinfo.display_pixels()
@@ -234,6 +243,7 @@ canvas=appuifw.Canvas(event_callback=None, redraw_callback=handle_redraw)
 appuifw.app.body=canvas
 appuifw.app.exit_key_handler=quit
 appuifw.app.screen='large'
+appuifw.app.menu = [(u"Open SGF File", open_file), (u"Change Path", change_path)]
 canvas.bind(key_codes.EKeySelect, press_select)
 canvas.bind(key_codes.EKeyDownArrow, press_down)
 canvas.bind(key_codes.EKeyUpArrow, press_up)

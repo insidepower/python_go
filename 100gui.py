@@ -11,6 +11,7 @@ y_min = 20
 x_min = 1
 current_seq = -1
 line_read = 0
+show_first_move=1
 # sequence = [ white/black, x_coor, y_coor, hide after this sequence]
 # ['w', 20, 60, 37] = white, x=20, y=60, hide after current_seq 37
 sequence = []
@@ -63,7 +64,16 @@ def quit():
 
 #----------------- press_select() ----------------#
 def press_select():
-	print "select"
+	global show_first_move
+	global current_seq
+	global sequence
+	if show_first_move:
+		show_first_move=0
+		current_seq = 0;
+	else:
+		show_first_move=1
+		current_seq = len(sequence)-1
+	handle_redraw(())
 
 #----------------- press_down() ----------------#
 def press_down():
@@ -196,8 +206,6 @@ def read_sgf(f):
 			#print("%s move %s" % (result.group(1), result.group(2)))
 			sequence.append((result.group(1), result.group(2), result.group(3)))
 			#print sequence[:]
-
-	print len(sequence)
 
 #----------------- main() ----------------#
 ## load image

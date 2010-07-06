@@ -2,14 +2,15 @@ import appuifw, e32, graphics
 import sysinfo
 import key_codes
 import re
+import string
 
 #----------------- global variable ----------------#
 x_inc = 18.7
 y_inc = 18.7
 y_min = 20
 x_min = 1
-#current_seq = -1
-current_seq = 30
+current_seq = -1
+#current_seq = 30
 sequence = []
 y_map = {'a':y_min,
 		 'b':y_min+(y_inc*1),
@@ -120,40 +121,71 @@ def handle_redraw(rect):
 def read_sgf(f):
 	# current rule works for kgs only...
 	global sequence
+	global current_seq
 	player_w=""
 	player_w_rank=""
 	player_b=""
 	player_b_rank=""
-	handicap_stone=0
+	total_handicap=0
 	komi=""
 	rules=""
 	result=""
 	reg_seq=re.compile(r";(W|B)\[(.)(.)")
 	lines=f.readlines()
 
-	# find out the line the game play sequence started
+	## find out the line the game play sequence started
 	for i, line in enumerate(lines):
 		result=reg_seq.match(line)
 		if result:
 			break
 
-	# get game info
-	for line in lines[0:i]:
-		if player_w=="":
-			#print line
-			result=re.match(r"PW\[(.*?)\]",line)
-			if result:
-				player_w=result.group(1)
-				print player_w
+	## get game info
+	game_info = "".join(lines[:i])
+	#print game_info
+	res=re.search(r"PW\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		player_w = res.group(1)
+	res=re.search(r"PB\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		player_b = res.group(1)
+	res=re.search(r"WR\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		player_w_rank = res.group(1)
+	res=re.search(r"BR\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		player_b_rank = res.group(1)
+	res=re.search(r"HA\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		total_handicap = string.atoi(res.group(1))
+		res=re.search(r"AB"+"\[(..)\]"*total_handicap, game_info, re.DOTALL)
+		cnt=1
+		while cnt<=total_handicap:
+			sequence.append(res.group(cnt))
+			cnt +=1
 
-	# get game played sequence
-	for line in lines[i:]:
-		result=reg_seq.match(line)
-		if result:
-			#print result.group()
-			#print("%s move %s" % (result.group(1), result.group(2)))
-			sequence.append((result.group(1), result.group(2), result.group(3)))
-			#print sequence[:]
+	#print player_w
+	#print player_b
+	#print player_w_rank
+	#print player_b_rank
+	#print total_handicap
+	#print sequence
+
+	#for line in lines[0:i]:
+	#	if player_w=="":
+	#		#print line
+	#		result=re.match(r"PW\[(.*?)\]",line)
+	#		if result:
+	#			player_w=result.group(1)
+	#			print player_w
+
+	## get game played sequence
+	#for line in lines[i:]:
+	#	result=reg_seq.match(line)
+	#	if result:
+	#		#print result.group()
+	#		#print("%s move %s" % (result.group(1), result.group(2)))
+	#		sequence.append((result.group(1), result.group(2), result.group(3)))
+	#		#print sequence[:]
 
 #----------------- main() ----------------#
 ## load image

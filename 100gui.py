@@ -3,6 +3,7 @@ import sysinfo
 import key_codes
 import re
 import string
+import os
 
 #----------------- global variable ----------------#
 x_inc = 18.7
@@ -10,12 +11,13 @@ y_inc = 18.7
 y_min = 20
 x_min = 1
 current_seq = -1
+total_handicap = 0
 line_read = 0
-show_first_move=1
+show_first_move=0
 # sequence = [ white/black, x_coor, y_coor, hide after this sequence]
 # ['w', 20, 60, 37] = white, x=20, y=60, hide after current_seq 37
 sequence = []
-file_path=""
+file_path="c:\\Data\\python"
 y_map = {'a':y_min,
 		 'b':y_min+(y_inc*1),
 		 'c':y_min+(y_inc*2),
@@ -68,9 +70,10 @@ def press_select():
 	global show_first_move
 	global current_seq
 	global sequence
+	global total_handicap
 	if show_first_move:
 		show_first_move=0
-		current_seq = 0;
+		current_seq = total_handicap-1;
 	else:
 		show_first_move=1
 		current_seq = len(sequence)-1
@@ -82,8 +85,8 @@ def press_down():
 	global y_coor
 	global current_seq
 	current_seq -= 20
-	if current_seq<0:
-		current_seq=0
+	if current_seq<total_handicap:
+		current_seq=total_handicap-1
 	y_coor += y_inc
 	handle_redraw(())
 
@@ -106,7 +109,7 @@ def press_right():
 	current_seq += 1
 	if current_seq>len(sequence):
 		current_seq=len(sequence)-1
-	#print ("current_seq=%d" % current_seq)
+	print ("current_seq=%d" % current_seq)
 	x_coor += x_inc
 	handle_redraw(())
 
@@ -116,8 +119,8 @@ def press_left():
 	global x_inc
 	global current_seq
 	current_seq -= 1
-	if current_seq<0:
-		current_seq=0
+	if current_seq<total_handicap:
+		current_seq=total_handicap-1
 	x_coor -= x_inc
 	handle_redraw(())
 
@@ -127,6 +130,8 @@ def handle_redraw(rect):
 	count=0
 	img.blit(img_board, (0,0), (0,0))
 	#img.blit(img_stone_w, target=(x_coor, y_coor), source=(0,0), mask=stoneMask)
+	print "haha"
+	print current_seq
 	if current_seq>=0:
 		#print sequence[count]
 		#print ("%d, %d" %(sequence[count][0], sequence[count][1]))
@@ -139,10 +144,26 @@ def handle_redraw(rect):
 			count += 1
 	canvas.blit(img)
 
+#----------------- init() ----------------#
+def init():
+	global y_min
+	global current_seq
+	global total_handicap
+	global line_read
+	global show_first_move
+	global sequence
+	current_seq = -1
+	line_read = 0
+	show_first_move=1
+	total_handicap=0
+	del sequence[:]
+	handle_redraw(())
+
 #----------------- parse_game_info() ----------------#
 def parse_game_info(game_info):
 	global sequence
 	global current_seq
+	global total_handicap
 	#print game_info
 	res=re.search(r"PW\[(.*?)\]", game_info, re.DOTALL)
 	if res:
@@ -170,12 +191,10 @@ def parse_game_info(game_info):
 def read_sgf(f):
 	# current rule works for kgs only...
 	global sequence
-	global current_seq
 	player_w=""
 	player_w_rank=""
 	player_b=""
 	player_b_rank=""
-	total_handicap=0
 	komi=""
 	rules=""
 	result=""
@@ -211,6 +230,18 @@ def read_sgf(f):
 #----------------- open_file() ----------------#
 def open_file():
 	print "open_file"
+	#files=[ f for f in os.listdir(file_path) if os.path.splitext(f)[1] is ".SGF"]
+	files=map(unicode, os.listdir(file_path))
+	sgf_files=[ f for f in files if os.path.splitext(f)[1].lower()==".sgf" ]
+	#print sgf_files
+	index=appuifw.selection_list(sgf_files)
+	if index:
+		#print index
+		#print sgf_files
+		print file_path+"\\"+sgf_files[index]
+		init()
+		f=open(file_path+"\\"+sgf_files[index])
+		read_sgf(f)
 
 #----------------- change_path() ----------------#
 def change_path():
@@ -222,18 +253,12 @@ def change_path():
 #img=graphics.Image.new((width,height))
 #print("size is %d %d" %(width, height))
 img=graphics.Image.new((360,640))
-img_board=graphics.Image.open("c:\\Data\\python\\board.jpg")
+img_board=graphics.Image.open(file_path+"\\board.jpg")
 # mask is 8-bit grey scale (L) or 1 (1-bit)
 stoneMask = graphics.Image.new(size = (20,20),mode = 'L')
-stoneMask.load("c:\\Data\\python\\stone_mask.jpg")
-img_stone_w=graphics.Image.open("c:\\Data\\python\\stone_w.jpg")
-img_stone_b=graphics.Image.open("c:\\Data\\python\\stone_b.jpg")
-
-# read sgf file
-f = open("c:\\Data\\python\\game1.sgf")
-read_sgf(f)
-#draw list item text
-#img.text((30,30),u'List Text',(0,0,0),"title")
+stoneMask.load(file_path+"\\stone_mask.jpg")
+img_stone_w=graphics.Image.open(file_path+"\\stone_w.jpg")
+img_stone_b=graphics.Image.open(file_path+"\\stone_b.jpg")
 
 ## hide the virtual directional pad
 #appuifw.app.directional_pad=False;
@@ -249,6 +274,14 @@ canvas.bind(key_codes.EKeyDownArrow, press_down)
 canvas.bind(key_codes.EKeyUpArrow, press_up)
 canvas.bind(key_codes.EKeyRightArrow, press_right)
 canvas.bind(key_codes.EKeyLeftArrow, press_left)
+
+init()
+
+# read sgf file
+f = open("c:\\Data\\python\\game1.sgf")
+read_sgf(f)
+#draw list item text
+#img.text((30,30),u'List Text',(0,0,0),"title")
 
 app_lock=e32.Ao_lock()
 app_lock.wait()

@@ -130,23 +130,28 @@ def handle_redraw(rect):
 	count=0
 	img.blit(img_board, (0,0), (0,0))
 	#img.blit(img_stone_w, target=(x_coor, y_coor), source=(0,0), mask=stoneMask)
-	print "haha"
-	print current_seq
 	if current_seq>=0:
-		#print sequence[count]
-		#print ("%d, %d" %(sequence[count][0], sequence[count][1]))
+		print "inside seq1"
+		print current_seq
+		print sequence[count]
+		print "inside seq2"
 		## display the sequence from 0 to current_seq
 		while count<=current_seq:
+			if "]"==sequence[count][1]:
+				# a pass move
+				count += 1
+				print "continue"
+				continue
 			if "W"==sequence[count][0]:
 				img.blit(img_stone_w, target=(x_map[sequence[count][1]], y_map[sequence[count][2]]), source=(0,0), mask=stoneMask)
 			if "B"==sequence[count][0]:
 				img.blit(img_stone_b, target=(x_map[sequence[count][1]], y_map[sequence[count][2]]), source=(0,0), mask=stoneMask)
+			print "not continue"
 			count += 1
 	canvas.blit(img)
 
 #----------------- init() ----------------#
 def init():
-	global y_min
 	global current_seq
 	global total_handicap
 	global line_read
@@ -157,6 +162,7 @@ def init():
 	show_first_move=1
 	total_handicap=0
 	del sequence[:]
+	sequence=[]
 	handle_redraw(())
 
 #----------------- parse_game_info() ----------------#
@@ -168,9 +174,11 @@ def parse_game_info(game_info):
 	res=re.search(r"PW\[(.*?)\]", game_info, re.DOTALL)
 	if res:
 		player_w = res.group(1)
+		print player_w
 	res=re.search(r"PB\[(.*?)\]", game_info, re.DOTALL)
 	if res:
 		player_b = res.group(1)
+		print player_b
 	res=re.search(r"WR\[(.*?)\]", game_info, re.DOTALL)
 	if res:
 		player_w_rank = res.group(1)
@@ -187,17 +195,15 @@ def parse_game_info(game_info):
 			cnt +=1
 			current_seq=total_handicap-1
 
+	#print player_w_rank
+	#print player_b_rank
+	#print total_handicap
+	#print sequence
+
 #----------------- read_sgf() ----------------#
 def read_sgf(f):
 	# current rule works for kgs only...
 	global sequence
-	player_w=""
-	player_w_rank=""
-	player_b=""
-	player_b_rank=""
-	komi=""
-	rules=""
-	result=""
 	reg_seq=re.compile(r";(W|B)\[(.)(.)")
 	lines=f.readlines()
 
@@ -210,13 +216,6 @@ def read_sgf(f):
 	## get game info
 	game_info = "".join(lines[:i])
 	parse_game_info(game_info);
-
-	#print player_w
-	#print player_b
-	#print player_w_rank
-	#print player_b_rank
-	#print total_handicap
-	#print sequence
 
 	## get game played sequence
 	for line in lines[i:]:
@@ -242,6 +241,7 @@ def open_file():
 		init()
 		f=open(file_path+"\\"+sgf_files[index])
 		read_sgf(f)
+		print sequence[:]
 
 #----------------- change_path() ----------------#
 def change_path():

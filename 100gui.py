@@ -14,6 +14,10 @@ current_seq = -1
 total_handicap = 0
 line_read = 0
 show_first_move=0
+stone_size=20
+# ellipse size, used to show last piece of stone
+e_offset=5
+e_size=stone_size/2+2
 # sequence = [ white/black, x_coor, y_coor, hide after this sequence]
 # ['w', 20, 60, 37] = white, x=20, y=60, hide after current_seq 37
 sequence = []
@@ -129,29 +133,30 @@ def press_left():
 def handle_redraw(rect):
 	global current_seq
 	count=0
+	my_x=None
 	img.blit(img_board, (0,0), (0,0))
 	#img.blit(img_stone_w, target=(x_coor, y_coor), source=(0,0), mask=stoneMask)
 	if current_seq>=0:
-		#print "inside seq1"
 		#print current_seq
 		#print sequence[count]
-		#print "inside seq2"
 		## display the sequence from 0 to current_seq
 		while count<=current_seq:
+			my_x=None
 			#print("count=%d, sequence=%c, %c", % (count, sequence[count][1], sequence[count][2]))
 			if "]"==sequence[count][1]:
-				#print ("len=%d, cur_seq=%d, count=%d, (%c, %c)"
-				#	% (len(sequence), current_seq, count, sequence[count][1], sequence[count][2]))
-				# a pass move
 				count += 1
-				#print "continue"
 				continue
 			if "W"==sequence[count][0]:
-				img.blit(img_stone_w, target=(x_map[sequence[count][1]], y_map[sequence[count][2]]), source=(0,0), mask=stoneMask)
+				my_x=x_map[sequence[count][1]]
+				my_y=y_map[sequence[count][2]]
+				img.blit(img_stone_w, target=(my_x, my_y), source=(0,0), mask=stoneMask)
 			if "B"==sequence[count][0]:
-				img.blit(img_stone_b, target=(x_map[sequence[count][1]], y_map[sequence[count][2]]), source=(0,0), mask=stoneMask)
-			#print "not continue"
+				my_x=x_map[sequence[count][1]]
+				my_y=y_map[sequence[count][2]]
+				img.blit(img_stone_b, target=(my_x, my_y), source=(0,0), mask=stoneMask)
 			count += 1
+		if my_x:
+			img.ellipse((my_x+e_offset, my_y+e_offset, my_x+e_size, my_y+e_size), 0xffffff, 0xffffff)
 	canvas.blit(img)
 
 #----------------- init() ----------------#
@@ -281,7 +286,7 @@ def change_path():
 img=graphics.Image.new((360,640))
 img_board=graphics.Image.open(file_path+"\\board.jpg")
 # mask is 8-bit grey scale (L) or 1 (1-bit)
-stoneMask = graphics.Image.new(size = (20,20),mode = 'L')
+stoneMask = graphics.Image.new(size = (stone_size,stone_size),mode = 'L')
 stoneMask.load(file_path+"\\stone_mask.jpg")
 img_stone_w=graphics.Image.open(file_path+"\\stone_w.jpg")
 img_stone_b=graphics.Image.open(file_path+"\\stone_b.jpg")

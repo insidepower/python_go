@@ -4,6 +4,7 @@ import key_codes
 import re
 import string
 import os
+import thread
 
 #----------------- global variable ----------------#
 x_inc = 18.7
@@ -95,9 +96,13 @@ def press_left():
 	handle_redraw(())
 
 #----------------- auto-reply() ----------------#
-def auto_play():
+def auto_play(stats):
+	print "thread start"
+	#while is_auto_play:
+	#	e32.ao_sleep(1)
 	e32.ao_sleep(1)
-	press_right()
+	print "thread exit"
+	#press_right()
 
 #----------------- press_select() ----------------#
 def press_select():
@@ -119,8 +124,10 @@ def press_select():
 def press_down():
 	global is_auto_play
 	if is_auto_play:
-		is_auto_play=0
-		auto_play()
+		stats = {}
+		thread_id=thread.start_new_thread(auto_play, (stats,))
+		print "thread returned"
+		#press_right()
 	else:
 		is_auto_play=1
 	#global y_inc

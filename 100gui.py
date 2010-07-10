@@ -15,6 +15,7 @@ total_handicap = 0
 line_read = 0
 show_first_move=0
 stone_size=20
+is_auto_play=0
 # ellipse size, used to show last piece of stone
 e_offset=5
 e_size=stone_size/2+2
@@ -69,42 +70,6 @@ y_coor=y_map['s']
 def quit():
 	app_lock.signal()
 
-#----------------- press_select() ----------------#
-def press_select():
-	global show_first_move
-	global current_seq
-	global sequence
-	global total_handicap
-	if show_first_move:
-		show_first_move=0
-		current_seq = total_handicap-1;
-	else:
-		show_first_move=1
-		current_seq = len(sequence)-1
-	handle_redraw(())
-
-#----------------- press_down() ----------------#
-def press_down():
-	global y_inc
-	global y_coor
-	global current_seq
-	current_seq -= 20
-	if current_seq<total_handicap:
-		current_seq=total_handicap-1
-	y_coor += y_inc
-	handle_redraw(())
-
-#----------------- press_up() ----------------#
-def press_up():
-	global y_inc
-	global y_coor
-	global current_seq
-	current_seq += 20
-	if current_seq>len(sequence):
-		current_seq=len(sequence)-1
-	y_coor -= y_inc
-	handle_redraw(())
-
 #----------------- press_right() ----------------#
 def press_right():
 	global x_coor
@@ -127,6 +92,55 @@ def press_left():
 	if current_seq<total_handicap:
 		current_seq=total_handicap-1
 	x_coor -= x_inc
+	handle_redraw(())
+
+#----------------- auto-reply() ----------------#
+def auto_play():
+	e32.ao_sleep(1)
+	press_right()
+
+#----------------- press_select() ----------------#
+def press_select():
+	global show_first_move
+	global current_seq
+	global sequence
+	global total_handicap
+	if is_auto_play:
+		is_auto_play=0
+	if show_first_move:
+		show_first_move=0
+		current_seq = total_handicap-1;
+	else:
+		show_first_move=1
+		current_seq = len(sequence)-1
+	handle_redraw(())
+
+#----------------- press_down() ----------------#
+def press_down():
+	global is_auto_play
+	if is_auto_play:
+		is_auto_play=0
+		auto_play()
+	else:
+		is_auto_play=1
+	#global y_inc
+	#global y_coor
+	#global current_seq
+	#current_seq -= 20
+	#if current_seq<total_handicap:
+	#	current_seq=total_handicap-1
+	#y_coor += y_inc
+	#handle_redraw(())
+
+#----------------- press_up() ----------------#
+def press_up():
+	global y_inc
+	global y_coor
+	global current_seq
+	current_seq += 20
+	if current_seq>len(sequence):
+		current_seq=len(sequence)-1
+	y_coor -= y_inc
 	handle_redraw(())
 
 #----------------- handle_redraw() ----------------#

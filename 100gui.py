@@ -107,9 +107,10 @@ def press_right():
 	global x_inc
 	global current_seq
 	current_seq += 1
-	if current_seq>len(sequence):
+	if current_seq>=len(sequence):
+		#print ("i: total=%d, current_seq=%d" % (len(sequence), current_seq))
 		current_seq=len(sequence)-1
-	print ("current_seq=%d" % current_seq)
+	#print ("total=%d, current_seq=%d" % (len(sequence), current_seq))
 	x_coor += x_inc
 	handle_redraw(())
 
@@ -131,22 +132,25 @@ def handle_redraw(rect):
 	img.blit(img_board, (0,0), (0,0))
 	#img.blit(img_stone_w, target=(x_coor, y_coor), source=(0,0), mask=stoneMask)
 	if current_seq>=0:
-		print "inside seq1"
-		print current_seq
-		print sequence[count]
-		print "inside seq2"
+		#print "inside seq1"
+		#print current_seq
+		#print sequence[count]
+		#print "inside seq2"
 		## display the sequence from 0 to current_seq
 		while count<=current_seq:
+			#print("count=%d, sequence=%c, %c", % (count, sequence[count][1], sequence[count][2]))
 			if "]"==sequence[count][1]:
+				#print ("len=%d, cur_seq=%d, count=%d, (%c, %c)"
+				#	% (len(sequence), current_seq, count, sequence[count][1], sequence[count][2]))
 				# a pass move
 				count += 1
-				print "continue"
+				#print "continue"
 				continue
 			if "W"==sequence[count][0]:
 				img.blit(img_stone_w, target=(x_map[sequence[count][1]], y_map[sequence[count][2]]), source=(0,0), mask=stoneMask)
 			if "B"==sequence[count][0]:
 				img.blit(img_stone_b, target=(x_map[sequence[count][1]], y_map[sequence[count][2]]), source=(0,0), mask=stoneMask)
-			print "not continue"
+			#print "not continue"
 			count += 1
 	canvas.blit(img)
 
@@ -159,7 +163,7 @@ def init():
 	global sequence
 	current_seq = -1
 	line_read = 0
-	show_first_move=1
+	show_first_move=0
 	total_handicap=0
 	del sequence[:]
 	sequence=[]
@@ -188,6 +192,7 @@ def parse_game_info(game_info):
 	res=re.search(r"HA\[(.*?)\]", game_info, re.DOTALL)
 	if res:
 		total_handicap = string.atoi(res.group(1))
+		print("total_handicap=%d" % total_handicap)
 		res=re.search(r"AB"+"\[(..)\]"*total_handicap, game_info, re.DOTALL)
 		cnt=1
 		while cnt<=total_handicap:
@@ -199,6 +204,7 @@ def parse_game_info(game_info):
 	#print player_b_rank
 	#print total_handicap
 	#print sequence
+	print ("current_seq=%d" % current_seq)
 
 #----------------- read_sgf() ----------------#
 def read_sgf(f):
@@ -241,7 +247,8 @@ def open_file():
 		init()
 		f=open(file_path+"\\"+sgf_files[index])
 		read_sgf(f)
-		print sequence[:]
+		handle_redraw(())
+		#print sequence[:]
 
 #----------------- change_path() ----------------#
 def change_path():

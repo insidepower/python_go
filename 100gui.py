@@ -192,7 +192,7 @@ def parse_game_info(game_info):
 	res=re.search(r"HA\[(.*?)\]", game_info, re.DOTALL)
 	if res:
 		total_handicap = string.atoi(res.group(1))
-		print("total_handicap=%d" % total_handicap)
+		#print("total_handicap=%d" % total_handicap)
 		res=re.search(r"AB"+"\[(..)\]"*total_handicap, game_info, re.DOTALL)
 		cnt=1
 		while cnt<=total_handicap:
@@ -204,7 +204,7 @@ def parse_game_info(game_info):
 	#print player_b_rank
 	#print total_handicap
 	#print sequence
-	print ("current_seq=%d" % current_seq)
+	#print ("current_seq=%d" % current_seq)
 
 #----------------- read_sgf() ----------------#
 def read_sgf(f):
@@ -240,19 +240,38 @@ def open_file():
 	sgf_files=[ f for f in files if os.path.splitext(f)[1].lower()==".sgf" ]
 	#print sgf_files
 	index=appuifw.selection_list(sgf_files)
-	if index:
-		#print index
-		#print sgf_files
+	if index!=None:
+		print sgf_files[index]
 		print file_path+"\\"+sgf_files[index]
 		init()
 		f=open(file_path+"\\"+sgf_files[index])
 		read_sgf(f)
 		handle_redraw(())
 		#print sequence[:]
+	print "open %d " % index
 
 #----------------- change_path() ----------------#
 def change_path():
+	global file_path
 	print "change_path"
+	cur_dir=file_path
+	index =-1
+	while index!=0 and index!=None:
+		#print "inwhile: cur_dir=%s" % cur_dir
+		dir=[ name for name in os.listdir(cur_dir) if os.path.isdir(os.path.join(cur_dir, name)) ]
+		# insert ".." to go up to root directory
+		dir.insert(0, "..")
+		# done selection
+		dir.insert(0, "done[%s]" % cur_dir)
+		mydir=map(unicode, dir)
+		#print dir[:]
+		index=appuifw.selection_list(mydir)
+		if index:
+			cur_dir=os.path.join(cur_dir, mydir[index])
+			#print "cur_dir=%s" % (cur_dir)
+	if index==0:
+		file_path=cur_dir
+		#print "file_path=%s" % file_path
 
 #----------------- main() ----------------#
 ## load image

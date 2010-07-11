@@ -11,7 +11,6 @@ y_inc = 18.7
 y_min = 20
 x_min = 1
 current_seq = -1
-total_handicap = 0
 line_read = 0
 show_first_move=0
 stone_size=20
@@ -22,6 +21,16 @@ e_size=stone_size/2+2
 # ['w', 20, 60, 37] = white, x=20, y=60, hide after current_seq 37
 sequence = []
 file_path="c:\\Data\\python"
+player_w=u""
+player_w_rank=u""
+player_b=u""
+player_b_rank=u""
+game_result=u""
+komi=u""
+date=u""
+total_handicap=0
+total_move=0
+
 y_map = {'a':y_min,
 		 'b':y_min+(y_inc*1),
 		 'c':y_min+(y_inc*2),
@@ -129,12 +138,27 @@ def press_left():
 	x_coor -= x_inc
 	handle_redraw(())
 
+def print_game_info():
+	#img.text((15,15),u'List Text',(255,255,255))
+	player_info=player_w +" ("+ player_w_rank +") vs "
+	player_info=player_info+player_b + " ("+ player_b_rank +u")  "
+	player_info=player_info +"["+ game_result +"] ; komi="+komi
+	if total_handicap>0:
+		player_info=player_info+" ; ha="+str(total_handicap)
+	player_info=player_info+" ; date="+date
+	img.text((5,12), player_info, fill=0xffffcc, font=(None, 10, graphics.FONT_BOLD))
+	#print appuifw.available_fonts()
+
+	seq_info=u"current move = "+str(current_seq+1)+" of "+str(total_move)
+	img.text((5, 390), seq_info, fill=0, font=(None, 10, graphics.FONT_BOLD))
+
 #----------------- handle_redraw() ----------------#
 def handle_redraw(rect):
 	global current_seq
 	count=0
 	my_x=None
 	img.blit(img_board, (0,0), (0,0))
+	print_game_info()
 	#img.blit(img_stone_w, target=(x_coor, y_coor), source=(0,0), mask=stoneMask)
 	if current_seq>=0:
 		#print current_seq
@@ -170,6 +194,7 @@ def init():
 	line_read = 0
 	show_first_move=0
 	total_handicap=0
+	total_move=0
 	del sequence[:]
 	sequence=[]
 	handle_redraw(())
@@ -178,16 +203,21 @@ def init():
 def parse_game_info(game_info):
 	global sequence
 	global current_seq
+	global player_w
+	global player_w_rank
+	global player_b
+	global player_b_rank
+	global game_result
+	global komi
+	global date
 	global total_handicap
 	#print game_info
 	res=re.search(r"PW\[(.*?)\]", game_info, re.DOTALL)
 	if res:
-		player_w = res.group(1)
-		print player_w
+		player_w = u"%s" % res.group(1)
 	res=re.search(r"PB\[(.*?)\]", game_info, re.DOTALL)
 	if res:
 		player_b = res.group(1)
-		print player_b
 	res=re.search(r"WR\[(.*?)\]", game_info, re.DOTALL)
 	if res:
 		player_w_rank = res.group(1)
@@ -204,6 +234,15 @@ def parse_game_info(game_info):
 			sequence.append(('B',res.group(cnt)[0], res.group(cnt)[1], 0))
 			cnt +=1
 			current_seq=total_handicap-1
+	res=re.search(r"RE\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		game_result = res.group(1)
+	res=re.search(r"KM\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		komi=res.group(1)
+	res=re.search(r"DT\[(.*?)\]", game_info, re.DOTALL)
+	if res:
+		date=res.group(1)
 
 	#print player_w_rank
 	#print player_b_rank
@@ -215,6 +254,7 @@ def parse_game_info(game_info):
 def read_sgf(f):
 	# current rule works for kgs only...
 	global sequence
+	global total_move
 	reg_seq=re.compile(r";(W|B)\[(.)(.)")
 	lines=f.readlines()
 
@@ -236,6 +276,7 @@ def read_sgf(f):
 			#print("%s move %s" % (result.group(1), result.group(2)))
 			sequence.append((result.group(1), result.group(2), result.group(3)))
 			#print sequence[:]
+		total_move=len(sequence)
 
 #----------------- open_file() ----------------#
 def open_file():
@@ -278,6 +319,10 @@ def change_path():
 		file_path=cur_dir
 		#print "file_path=%s" % file_path
 
+#----------------- exit_app() ----------------#
+def exit_app():
+	app_lock.signal()
+
 #----------------- main() ----------------#
 ## load image
 #(width, height) = sysinfo.display_pixels()
@@ -299,7 +344,7 @@ canvas=appuifw.Canvas(event_callback=None, redraw_callback=handle_redraw)
 appuifw.app.body=canvas
 appuifw.app.exit_key_handler=quit
 appuifw.app.screen='large'
-appuifw.app.menu = [(u"Open SGF File", open_file), (u"Change Path", change_path)]
+appuifw.app.menu = [(u"Exit", exit_app), (u"Open SGF File", open_file), (u"Change Path", change_path)]
 canvas.bind(key_codes.EKeySelect, press_select)
 canvas.bind(key_codes.EKeyDownArrow, press_down)
 canvas.bind(key_codes.EKeyUpArrow, press_up)
@@ -309,7 +354,7 @@ canvas.bind(key_codes.EKeyLeftArrow, press_left)
 init()
 
 # read sgf file
-f = open("c:\\Data\\python\\game1.sgf")
+f = open(file_path+"\\game1.sgf")
 read_sgf(f)
 #draw list item text
 #img.text((30,30),u'List Text',(0,0,0),"title")

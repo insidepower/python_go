@@ -294,7 +294,6 @@ def open_file():
 		read_sgf(f)
 		handle_redraw(())
 		#print sequence[:]
-	print "open %d " % index
 
 #----------------- change_path() ----------------#
 def change_path():
@@ -328,6 +327,12 @@ def exit_app():
 #(width, height) = sysinfo.display_pixels()
 #img=graphics.Image.new((width,height))
 #print("size is %d %d" %(width, height))
+
+## as a convenient way to switch between c:\\(pc) or e:\\(hp)
+img_board_path=file_path+"\\board.jpg"
+if not os.path.isfile(img_board_path):
+	file_path="e:\\Data\\python"
+
 img=graphics.Image.new((360,640))
 img_board=graphics.Image.open(file_path+"\\board.jpg")
 # mask is 8-bit grey scale (L) or 1 (1-bit)

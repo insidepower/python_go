@@ -8,11 +8,14 @@ import sys
 
 #----------------- class sgf_viewer ----------------#
 class sgf_viewer(object):
-	#------------- global variable ----------------#
+	#------------- [ global variable ]----------------#
 	dbm=None
 	sgf_files=None
 	last_game_index=0
 	last_game_move=None
+	fp_debug=None
+	on_debug=True
+	open_last_game=True
 	x_inc = 18.7
 	y_inc = 18.7
 	y_min = 20
@@ -89,6 +92,12 @@ class sgf_viewer(object):
 	def quit():
 		self.app_lock.signal()
 
+	#----------------- debug() ----------------#
+	def dbg(self, str, *args):
+		if self.on_debug:
+			#print (str % args)
+			self.fp_debug.write((str+'\n') % args)
+
 	#----------------- press_select() ----------------#
 	def press_select(self):
 		if self.show_first_move:
@@ -151,8 +160,8 @@ class sgf_viewer(object):
 		self.img.blit(self.img_board, (0,0), (0,0))
 		self.print_game_info()
 		if self.sequence and self.cur_seq>=0:
-			print "handle_redraw: cur_seq=", self.cur_seq
-			print "sequence=", self.sequence[:]
+			self.dbg("handle_redraw: cur_seq=%s", self.cur_seq)
+			self.dbg("sequence=%s", self.sequence[:])
 			## display the sequence from 0 to cur_seq
 			while count<=self.cur_seq:
 				my_x=None
@@ -178,12 +187,9 @@ class sgf_viewer(object):
 
 	#----------------- init() ----------------#
 	def init(self):
-		if self.last_game_move==None:
-			self.cur_seq = -1
-		else:
-			self.cur_seq = self.last_game_move
-		print "last_game_move=", self.last_game_move
-		print "cur_seq=", self.cur_seq
+		self.cur_seq = -1
+		self.dbg("last_game_move=%s" % self.last_game_move)
+		self.dbg("cur_seq=%s" % self.cur_seq)
 		self.line_read = 0
 		self.show_first_move=0
 		self.total_handicap=0
@@ -218,6 +224,10 @@ class sgf_viewer(object):
 				self.sequence.append(('B',res.group(cnt)[0],
 										res.group(cnt)[1], 0))
 				cnt +=1
+			if self.open_last_game and self.last_game_move:
+				## open last game
+				self.cur_seq = self.last_game_move
+			else:
 				self.cur_seq=self.total_handicap-1
 		res=re.search(r"RE\[(.*?)\]", game_info, re.DOTALL)
 		if res:
@@ -274,14 +284,16 @@ class sgf_viewer(object):
 
 	#----------------- process_file() ----------------#
 	def process_file(self, index):
-		print self.sgf_files[index]
-		print self.sgf_file_path+"\\"+self.sgf_files[index]
+		self.dbg(self.sgf_files[index])
+		self.dbg(self.sgf_file_path+"\\"+self.sgf_files[index])
+		self.dbg("before self.init, cur_seq=%d" % self.cur_seq)
 		self.init()
+		self.dbg("after self.init, cur_seq=%d" % self.cur_seq)
 		f=open(self.sgf_file_path+"\\"+self.sgf_files[index])
+		self.dbg("before read_sgf, cur_seq=%d" % self.cur_seq)
 		self.read_sgf(f)
-		print "process_file: cur_seq=", self.cur_seq
+		self.dbg("process_file: cur_seq=%d" % self.cur_seq)
 		self.handle_redraw(())
-		print "process_file2: cur_seq=", self.cur_seq
 		self.last_game_index=index
 		#print self.sequence[:]
 
@@ -346,10 +358,15 @@ class sgf_viewer(object):
 	#----------------- exit_app() ----------------#
 	def exit_app(self):
 		if self.dbm:
+			self.dbm.close()
+			## delete the exisitng file by creating a new one
+			self.dbm=e32dbm.open(self.last_opened_game, "n")
 			self.set_dbm_prop('sgf_file_path', self.sgf_file_path)
 			self.set_dbm_prop('last_game_index', self.last_game_index)
 			self.set_dbm_prop('last_game_move', self.cur_seq)
 			self.dbm.close()
+		if self.on_debug:
+			self.fp_debug.close()
 		self.app_lock.signal()
 
 	#----------------- main() ----------------#
@@ -358,6 +375,10 @@ class sgf_viewer(object):
 		#(width, height) = sysinfo.display_pixels()
 		#self.img=graphics.Image.new((width,height))
 		#print("size is %d %d" %(width, height))
+
+		## file for debug use
+		if self.on_debug:
+			self.fp_debug = open(self.main_path+'\\debug.txt', 'w+')
 
 		## as a convenient way to switch between c:\\(pc) or e:\\(hp)
 		self.img_board_path=self.main_path+"\\board.jpg"
@@ -392,7 +413,7 @@ class sgf_viewer(object):
 		#appuifw.app.title=unicode(self.player_w +'('+self.player_w_rank+')'+\
 							#' vs '+ self.player_b+'('+self.player_b_rank+')')
 		appuifw.app.body=self.canvas
-		appuifw.app.exit_key_handler=quit
+		appuifw.app.exit_key_handler=self.exit_app
 		appuifw.app.screen='large'
 		appuifw.app.menu = [(u"Exit", self.exit_app), (u"Open SGF File", \
 						self.open_file), (u"Change Path", self.change_path)]
@@ -406,6 +427,7 @@ class sgf_viewer(object):
 		#self.open_file()
 		self.get_sgf_files()
 		self.process_file(self.last_game_index)
+		self.open_last_game=False
 		self.app_lock.wait()
 
 #----------------- start_app ----------------#

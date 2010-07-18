@@ -17,7 +17,7 @@ class sgf_viewer(object):
 	y_inc = 18.7
 	y_min = 20
 	x_min = 1
-	current_seq = -1
+	cur_seq = -1
 	line_read = 0
 	show_first_move=0
 	stone_size=20
@@ -25,7 +25,7 @@ class sgf_viewer(object):
 	e_offset=5
 	e_size=stone_size/2+2
 	# sequence = [ white/black, x_coor, y_coor, hide after this sequence]
-	# ['w', 20, 60, 37] = white, x=20, y=60, hide after current_seq 37
+	# ['w', 20, 60, 37] = white, x=20, y=60, hide after cur_seq 37
 	sequence = []
 	file_path="c:\\Data\\python"
 	player_w=u""
@@ -91,55 +91,56 @@ class sgf_viewer(object):
 	def press_select(self):
 		if self.show_first_move:
 			self.show_first_move=0
-			self.current_seq = self.total_handicap-1;
+			self.cur_seq = self.total_handicap-1;
 		else:
 			self.show_first_move=1
-			self.current_seq = len(self.sequence)-1
+			self.cur_seq = len(self.sequence)-1
 		self.handle_redraw(())
 
 	#----------------- press_down() ----------------#
 	def press_down(self):
-		self.current_seq -= 20
-		if self.current_seq<self.total_handicap:
-			self.current_seq=self.total_handicap-1
+		self.cur_seq -= 20
+		if self.cur_seq<self.total_handicap:
+			self.cur_seq=self.total_handicap-1
 		self.handle_redraw(())
 
 	#----------------- press_up() ----------------#
 	def press_up(self):
-		self.current_seq += 20
-		if self.current_seq>len(self.sequence):
-			self.current_seq=len(self.sequence)-1
+		self.cur_seq += 20
+		if self.cur_seq>len(self.sequence):
+			self.cur_seq=len(self.sequence)-1
 		self.handle_redraw(())
 
 	#----------------- press_right() ----------------#
 	def press_right(self):
-		self.current_seq += 1
-		if self.current_seq>=len(self.sequence):
-			#print ("i: total=%d, self.current_seq=%d" % (len(self.sequence), self.current_seq))
-			self.current_seq=len(self.sequence)-1
-		#print ("total=%d, self.current_seq=%d" % (len(self.sequence), self.current_seq))
+		self.cur_seq += 1
+		if self.cur_seq>=len(self.sequence):
+			self.cur_seq=len(self.sequence)-1
 		self.handle_redraw(())
 
 	#----------------- press_left() ----------------#
 	def press_left(self):
-		self.current_seq -= 1
-		if self.current_seq<self.total_handicap:
-			self.current_seq=self.total_handicap-1
+		self.cur_seq -= 1
+		if self.cur_seq<self.total_handicap:
+			self.cur_seq=self.total_handicap-1
 		self.handle_redraw(())
 
 	def print_game_info(self):
 		#self.img.text((15,15),u'List Text',(255,255,255))
 		player_info=self.player_w +" ("+ self.player_w_rank +") vs "
-		player_info=player_info+self.player_b + " ("+ self.player_b_rank +u")  "
+		player_info=player_info+self.player_b+" ("+ self.player_b_rank +u")  "
 		player_info=player_info +"["+ self.game_result +"] ; komi="+self.komi
 		if self.total_handicap>0:
 			player_info=player_info+" ; ha="+str(self.total_handicap)
 		player_info=player_info+" ; date="+self.date
-		self.img.text((5,12), player_info, fill=0xffffcc, font=("normal", 10, graphics.FONT_BOLD))
+		self.img.text((5,12), player_info, fill=0xffffcc,
+							font=("normal", 10, graphics.FONT_BOLD))
 		#print appuifw.available_fonts()
 
-		seq_info=u"current move = "+str(self.current_seq+1)+" of "+str(self.total_move)
-		self.img.text((5, 390), seq_info, fill=0, font=("normal", 10, graphics.FONT_BOLD))
+		seq_info=u"current move = "+str(self.cur_seq+1)+" of "
+		seq_info+=str(self.total_move)
+		self.img.text((5, 390), seq_info, fill=0,
+						font=("normal", 10, graphics.FONT_BOLD))
 
 	#----------------- handle_redraw() ----------------#
 	def handle_redraw(self, rect):
@@ -147,32 +148,34 @@ class sgf_viewer(object):
 		my_x=None
 		self.img.blit(self.img_board, (0,0), (0,0))
 		self.print_game_info()
-		if self.current_seq>=0:
-			#print self.current_seq
+		if self.cur_seq>=0:
+			#print self.cur_seq
 			#print self.sequence[count]
-			## display the sequence from 0 to current_seq
-			while count<=self.current_seq:
+			## display the sequence from 0 to cur_seq
+			while count<=self.cur_seq:
 				my_x=None
-				#print("count=%d, self.sequence=%c, %c", % (count, self.sequence[count][1], self.sequence[count][2]))
 				if "]"==self.sequence[count][1]:
 					count += 1
 					continue
 				if "W"==self.sequence[count][0]:
 					my_x=self.x_map[self.sequence[count][1]]
 					my_y=self.y_map[self.sequence[count][2]]
-					self.img.blit(self.img_stone_w, target=(my_x, my_y), source=(0,0), mask=self.stoneMask)
+					self.img.blit(self.img_stone_w, target=(my_x, my_y),
+											source=(0,0), mask=self.stoneMask)
 				if "B"==self.sequence[count][0]:
 					my_x=self.x_map[self.sequence[count][1]]
 					my_y=self.y_map[self.sequence[count][2]]
-					self.img.blit(self.img_stone_b, target=(my_x, my_y), source=(0,0), mask=self.stoneMask)
+					self.img.blit(self.img_stone_b, target=(my_x, my_y),
+											source=(0,0), mask=self.stoneMask)
 				count += 1
 			if my_x:
-				self.img.ellipse((my_x+self.e_offset, my_y+self.e_offset, my_x+self.e_size, my_y+self.e_size), 0xffffff, 0xffffff)
+				self.img.ellipse((my_x+self.e_offset, my_y+self.e_offset,
+					my_x+self.e_size, my_y+self.e_size), 0xffffff, 0xffffff)
 		self.canvas.blit(self.img)
 
 	#----------------- init() ----------------#
 	def init(self):
-		self.current_seq = -1
+		self.cur_seq = -1
 		self.line_read = 0
 		self.show_first_move=0
 		self.total_handicap=0
@@ -200,12 +203,14 @@ class sgf_viewer(object):
 		if res:
 			self.total_handicap = string.atoi(res.group(1))
 			#print("self.total_handicap=%d" % self.total_handicap)
-			res=re.search(r"AB"+"\[(..)\]"*self.total_handicap, game_info, re.DOTALL)
+			res=re.search(r"AB"+"\[(..)\]"*self.total_handicap,
+							game_info, re.DOTALL)
 			cnt=1
 			while cnt<=self.total_handicap:
-				self.sequence.append(('B',res.group(cnt)[0], res.group(cnt)[1], 0))
+				self.sequence.append(('B',res.group(cnt)[0],
+										res.group(cnt)[1], 0))
 				cnt +=1
-				self.current_seq=self.total_handicap-1
+				self.cur_seq=self.total_handicap-1
 		res=re.search(r"RE\[(.*?)\]", game_info, re.DOTALL)
 		if res:
 			self.game_result = res.group(1)
@@ -242,21 +247,21 @@ class sgf_viewer(object):
 
 		## get game played sequence
 		for line in lines[i:]:
-			result=reg_seq.match(line)
-			if result:
-				#print result.group()
-				#print("%s move %s" % (result.group(1), result.group(2)))
-				self.sequence.append((result.group(1), result.group(2), result.group(3)))
+			res=reg_seq.match(line)
+			if res:
+				#print res.group()
+				#print("%s move %s" % (res.group(1), res.group(2)))
+				self.sequence.append((res.group(1),res.group(2),res.group(3)))
 				#print self.sequence[:]
 			self.total_move=len(self.sequence)
 
 	#----------------- get_sgf_files() ----------------#
 	def get_sgf_files(self):
-		#files=[ f for f in os.listdir(self.file_path) if os.path.splitext(f)[1] is ".SGF"]
 		files=map(unicode, os.listdir(self.file_path))
 		if self.sgf_files:
 			del self.sgf_files[:]
-		self.sgf_files=[ f for f in files if os.path.splitext(f)[1].lower()==".sgf" ]
+		self.sgf_files=[ f for f in files if \
+							os.path.splitext(f)[1].lower()==".sgf" ]
 		#print self.sgf_files
 
 	#----------------- open_file() ----------------#
@@ -280,7 +285,8 @@ class sgf_viewer(object):
 		index =-1
 		while index!=0 and index!=None:
 			#print "inwhile: cur_dir=%s" % cur_dir
-			dir=[ name for name in os.listdir(cur_dir) if os.path.isdir(os.path.join(cur_dir, name)) ]
+			dir=[ name for name in os.listdir(cur_dir) if \
+					os.path.isdir(os.path.join(cur_dir, name)) ]
 			# insert ".." to go up to root directory
 			dir.insert(0, "..")
 			# done selection
@@ -302,7 +308,8 @@ class sgf_viewer(object):
 		re_path=re.compile("file_path=(.*)")
 		re_last_game_index=re.compile("last_game_index=(.*)")
 		re_last_game_move=re.compile("last_game_move=(.*)")
-		#func_ptr={0:lambda x: setattr(file_path, , 1:set_game_index, 2:set_game_move}
+		#func_ptr={0:lambda x: setattr(file_path, \
+			#1:set_game_index, 2:set_game_move}
 		#for i, line in enumerate(fp):
 		#	res=re_path.match(info[0])
 		#if res:
@@ -319,7 +326,7 @@ class sgf_viewer(object):
 		#	if os.path.isfile(my_game):
 		#		f = open()
 		#		read_sgf(f)
-		#		self.current_seq=res.group(1)
+		#		self.cur_seq=res.group(1)
 		#	else:
 		#		print "my_game is not file=%s" % my_game
 
@@ -357,20 +364,23 @@ class sgf_viewer(object):
 		self.img=graphics.Image.new((360,640))
 		self.img_board=graphics.Image.open(self.file_path+"\\board.jpg")
 		# mask is 8-bit grey scale (L) or 1 (1-bit)
-		self.stoneMask = graphics.Image.new(size = (self.stone_size,self.stone_size),mode = 'L')
+		self.stoneMask = graphics.Image.new(size = \
+							(self.stone_size,self.stone_size),mode = 'L')
 		self.stoneMask.load(self.file_path+"\\stone_mask.jpg")
 		self.img_stone_w=graphics.Image.open(self.file_path+"\\stone_w.jpg")
 		self.img_stone_b=graphics.Image.open(self.file_path+"\\stone_b.jpg")
 
 		## hide the virtual directional pad
 		#appuifw.app.directional_pad=False;
-		self.canvas=appuifw.Canvas(event_callback=None, redraw_callback=self.handle_redraw)
-		#appuifw.app.title=unicode(self.player_w +'('+self.player_w_rank+')'+' vs '+ self.player_b+'('+self.player_b_rank+')')
-		#appuifw.app.title=u"hahaha"
+		self.canvas=appuifw.Canvas(event_callback=None,
+							redraw_callback=self.handle_redraw)
+		#appuifw.app.title=unicode(self.player_w +'('+self.player_w_rank+')'+\
+							#' vs '+ self.player_b+'('+self.player_b_rank+')')
 		appuifw.app.body=self.canvas
 		appuifw.app.exit_key_handler=quit
 		appuifw.app.screen='large'
-		appuifw.app.menu = [(u"Exit", self.exit_app), (u"Open SGF File", self.open_file), (u"Change Path", self.change_path)]
+		appuifw.app.menu = [(u"Exit", self.exit_app), (u"Open SGF File", \
+						self.open_file), (u"Change Path", self.change_path)]
 		self.canvas.bind(key_codes.EKeySelect, self.press_select)
 		self.canvas.bind(key_codes.EKeyDownArrow, self.press_down)
 		self.canvas.bind(key_codes.EKeyUpArrow, self.press_up)

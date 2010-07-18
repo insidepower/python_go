@@ -1,4 +1,4 @@
-import appuifw, e32, graphics
+import appuifw, e32, graphics, e32dbm
 import sysinfo
 import key_codes
 import re
@@ -9,9 +9,9 @@ import sys
 #----------------- class sgf_viewer ----------------#
 class sgf_viewer(object):
 	#------------- global variable ----------------#
-	fp=None
+	dbm=None
 	sgf_files=None
-	last_game_index=None
+	last_game_index=0
 	last_game_move=None
 	x_inc = 18.7
 	y_inc = 18.7
@@ -27,7 +27,8 @@ class sgf_viewer(object):
 	# sequence = [ white/black, x_coor, y_coor, hide after this sequence]
 	# ['w', 20, 60, 37] = white, x=20, y=60, hide after cur_seq 37
 	sequence = []
-	file_path="c:\\Data\\python"
+	main_path=u"c:\\Data\\python"
+	sgf_file_path=u"c:\\Data\\python"
 	player_w=u""
 	player_w_rank=u""
 	player_b=u""
@@ -37,6 +38,7 @@ class sgf_viewer(object):
 	date=u""
 	total_handicap=0
 	total_move=0
+	img=None
 
 	y_map = {'a':y_min,
 			 'b':y_min+(y_inc*1),
@@ -148,12 +150,13 @@ class sgf_viewer(object):
 		my_x=None
 		self.img.blit(self.img_board, (0,0), (0,0))
 		self.print_game_info()
-		if self.cur_seq>=0:
-			#print self.cur_seq
-			#print self.sequence[count]
+		if self.sequence and self.cur_seq>=0:
+			print "handle_redraw: cur_seq=", self.cur_seq
+			print "sequence=", self.sequence[:]
 			## display the sequence from 0 to cur_seq
 			while count<=self.cur_seq:
 				my_x=None
+				#print "handle_redraw, count=", count
 				if "]"==self.sequence[count][1]:
 					count += 1
 					continue
@@ -175,7 +178,12 @@ class sgf_viewer(object):
 
 	#----------------- init() ----------------#
 	def init(self):
-		self.cur_seq = -1
+		if self.last_game_move==None:
+			self.cur_seq = -1
+		else:
+			self.cur_seq = self.last_game_move
+		print "last_game_move=", self.last_game_move
+		print "cur_seq=", self.cur_seq
 		self.line_read = 0
 		self.show_first_move=0
 		self.total_handicap=0
@@ -257,12 +265,25 @@ class sgf_viewer(object):
 
 	#----------------- get_sgf_files() ----------------#
 	def get_sgf_files(self):
-		files=map(unicode, os.listdir(self.file_path))
+		files=map(unicode, os.listdir(self.sgf_file_path))
 		if self.sgf_files:
 			del self.sgf_files[:]
 		self.sgf_files=[ f for f in files if \
 							os.path.splitext(f)[1].lower()==".sgf" ]
 		#print self.sgf_files
+
+	#----------------- process_file() ----------------#
+	def process_file(self, index):
+		print self.sgf_files[index]
+		print self.sgf_file_path+"\\"+self.sgf_files[index]
+		self.init()
+		f=open(self.sgf_file_path+"\\"+self.sgf_files[index])
+		self.read_sgf(f)
+		print "process_file: cur_seq=", self.cur_seq
+		self.handle_redraw(())
+		print "process_file2: cur_seq=", self.cur_seq
+		self.last_game_index=index
+		#print self.sequence[:]
 
 	#----------------- open_file() ----------------#
 	def open_file(self):
@@ -270,18 +291,12 @@ class sgf_viewer(object):
 		self.get_sgf_files()
 		index=appuifw.selection_list(self.sgf_files)
 		if index!=None:
-			print self.sgf_files[index]
-			print self.file_path+"\\"+self.sgf_files[index]
-			self.init()
-			f=open(self.file_path+"\\"+self.sgf_files[index])
-			self.read_sgf(f)
-			self.handle_redraw(())
-			#print self.sequence[:]
+			self.process_file(index)
 
 	#----------------- change_path() ----------------#
 	def change_path(self):
 		print "change_path"
-		cur_dir=self.file_path
+		cur_dir=self.sgf_file_path
 		index =-1
 		while index!=0 and index!=None:
 			#print "inwhile: cur_dir=%s" % cur_dir
@@ -296,49 +311,45 @@ class sgf_viewer(object):
 			index=appuifw.selection_list(mydir)
 			if index:
 				cur_dir=os.path.join(cur_dir, mydir[index])
-				self.file_path=cur_dir
+				self.sgf_file_path=cur_dir
 				self.get_sgf_files()
 				#print "cur_dir=%s" % (cur_dir)
 		#if index==0:
 		#	self.file_path=cur_dir
 			#print "self.file_path=%s" % self.file_path
 
-	#----------------- read_file_info() ----------------#
-	def read_file_info(self, fp):
-		re_path=re.compile("file_path=(.*)")
-		re_last_game_index=re.compile("last_game_index=(.*)")
-		re_last_game_move=re.compile("last_game_move=(.*)")
-		#func_ptr={0:lambda x: setattr(file_path, \
-			#1:set_game_index, 2:set_game_move}
-		#for i, line in enumerate(fp):
-		#	res=re_path.match(info[0])
-		#if res:
-		#	switch(i):
-		#	file_info_data.append(res.group(1))
+	#----------------- set_dbm_prop() ----------------#
+	def set_dbm_prop(self, key, value):
+		if str(value) == value:
+			## if it is string, cast to unicode
+			value = "u\"%s\"" % value
+			self.dbm[key] = value
+		else:
+			self.dbm[key] = str(value)
 
-		#if file_info_data[0]
-		#res=re_last_game_index.match(info[1])
-		#if res:
-		#	self.last_game_index=res.group(1)
-		#res=re_last_game_move.match(info[2])
-		#if res:
-		#	my_game=file_path+"\\"+sgf_files[self.last_game_index]
-		#	if os.path.isfile(my_game):
-		#		f = open()
-		#		read_sgf(f)
-		#		self.cur_seq=res.group(1)
-		#	else:
-		#		print "my_game is not file=%s" % my_game
+	#----------------- get_dbm_prop() ----------------#
+	def get_dbm_prop(self, key):
+		try:
+			return eval(self.dbm[key])
+		except:
+			## item not exit yet, return none
+			return None
+
+	#----------------- read_last_opened_game() ----------------#
+	def read_last_opened_game(self):
+		temp=self.get_dbm_prop('sgf_file_path')
+		if temp:
+			self.sgf_file_path=temp
+		self.last_game_index=self.get_dbm_prop('last_game_index')
+		self.last_game_move=self.get_dbm_prop('last_game_move')
 
 	#----------------- exit_app() ----------------#
 	def exit_app(self):
-		if self.fp:
-			self.fp.seek(0)
-			self.fp.write("file_path=%s" % self.file_path)
-			if self.last_game_index:
-				self.fp.write("last_game_index=%d" % self.last_game_index)
-				self.fp.write("last_game_move=%d" % self.last_game_move)
-			self.fp.close()
+		if self.dbm:
+			self.set_dbm_prop('sgf_file_path', self.sgf_file_path)
+			self.set_dbm_prop('last_game_index', self.last_game_index)
+			self.set_dbm_prop('last_game_move', self.cur_seq)
+			self.dbm.close()
 		self.app_lock.signal()
 
 	#----------------- main() ----------------#
@@ -349,26 +360,30 @@ class sgf_viewer(object):
 		#print("size is %d %d" %(width, height))
 
 		## as a convenient way to switch between c:\\(pc) or e:\\(hp)
-		self.img_board_path=self.file_path+"\\board.jpg"
+		self.img_board_path=self.main_path+"\\board.jpg"
 		if not os.path.isfile(self.img_board_path):
-			self.file_path="e:\\Data\\python"
+			self.main_path="e:\\Data\\python"
 
-		self.file_info=self.file_path+"\\file.info"
-		fp=open(self.file_info, "r+")
-		if fp==None:
-			print "file %s open error" % self.file_info
+		self.last_opened_game=self.main_path+"\\last_opened_game"
+		try:
+			self.dbm=e32dbm.open(self.last_opened_game, "w")
+		except:
+			# assume file not exist, create new
+			self.dbm=e32dbm.open(self.last_opened_game, "n");
+		if self.dbm==None:
+			print "file %s open error" % self.last_opened_game
 			sys.exit(2)
-		self.get_sgf_files()
-		self.read_file_info(fp)
+		#self.get_sgf_files()
+		self.read_last_opened_game()
 
 		self.img=graphics.Image.new((360,640))
-		self.img_board=graphics.Image.open(self.file_path+"\\board.jpg")
+		self.img_board=graphics.Image.open(self.main_path+"\\board.jpg")
 		# mask is 8-bit grey scale (L) or 1 (1-bit)
 		self.stoneMask = graphics.Image.new(size = \
 							(self.stone_size,self.stone_size),mode = 'L')
-		self.stoneMask.load(self.file_path+"\\stone_mask.jpg")
-		self.img_stone_w=graphics.Image.open(self.file_path+"\\stone_w.jpg")
-		self.img_stone_b=graphics.Image.open(self.file_path+"\\stone_b.jpg")
+		self.stoneMask.load(self.main_path+"\\stone_mask.jpg")
+		self.img_stone_w=graphics.Image.open(self.main_path+"\\stone_w.jpg")
+		self.img_stone_b=graphics.Image.open(self.main_path+"\\stone_b.jpg")
 
 		## hide the virtual directional pad
 		#appuifw.app.directional_pad=False;
@@ -387,15 +402,10 @@ class sgf_viewer(object):
 		self.canvas.bind(key_codes.EKeyRightArrow, self.press_right)
 		self.canvas.bind(key_codes.EKeyLeftArrow, self.press_left)
 
-		self.init()
-
-		# read sgf file
-		#f = open(self.file_path+"\\game1.sgf")
-		#read_sgf(f)
-		#draw list item text
-		#self.img.text((30,30),u'List Text',(0,0,0),"title")
-
 		self.app_lock=e32.Ao_lock()
+		#self.open_file()
+		self.get_sgf_files()
+		self.process_file(self.last_game_index)
 		self.app_lock.wait()
 
 #----------------- start_app ----------------#

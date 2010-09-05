@@ -96,9 +96,11 @@ class sgf_viewer(object):
 	## todo: add/remove favourite game
 	xml_init = ('''<?xml version="1.0" ?>
 	<data>
-	<last_game>%s</last_game>
-	<history>0,0,0,0,0</history>
-	<his_last_idx>%d</his_last_idx>
+		<last_game>%s
+			<last_game_move>2</last_game_move>
+		</last_game>
+		<history>0,0,0,0,0</history>
+		<his_last_idx>%d</his_last_idx>
 	</data>
 	''' % (no_game, total_his))
 
@@ -376,6 +378,8 @@ class sgf_viewer(object):
 				if basename == line:
 					#self.dbg("basename==line, i=%d", i)
 					self.last_game_index = i
+					self.last_game_move = int(self.xml_last_game_move.data)
+					self.dbg("kn:last_game_move=%d", self.last_game_move)
 					break
 		else:
 			self.dbg("self.xml_last_game (%s) does not have valid"
@@ -389,9 +393,9 @@ class sgf_viewer(object):
 		#self.last_game_index=self.get_dbm_prop('last_game_index')
 		#self.last_game_move=self.get_dbm_prop('last_game_move')
 		self.get_last_game_idx()
-		self.last_game_move=self.get_dbm_prop('last_game_move')
+		#self.last_game_move=self.get_dbm_prop('last_game_move')
 		self.dbg("last game index=%s" % self.last_game_index)
-		if self.last_game_index!=None:
+		if self.cur_seq!=None:
 			## if last opened game found
 			self.get_sgf_files()
 			self.process_file(self.last_game_index)
@@ -429,6 +433,7 @@ class sgf_viewer(object):
 		#	self.dbm.close()
 
 		## write the xml file
+		self.xml_last_game_move.data = repr(self.cur_seq)
 		xml_fp = open(self.xml_file, "w")
 		xml_fp.write('%s' % self.xmldoc.toxml())
 		xml_fp.close()
@@ -460,10 +465,13 @@ class sgf_viewer(object):
 			xml_fp.close()
 			self.dbg('writting to xml_file')
 		self.xmldoc = minidom.parse(self.xml_file)
-		self.xml_last_game = self.xmldoc.getElementsByTagName('last_game')[0].childNodes[0]
-		#self.dbg("kn = %s ", dir(self.xml_last_game))
-		#self.dbg("kn2 = %s ", self.xml_last_game.__dict__)
-		#self.dbg("kn2 = %s ", self.xml_last_game.data)
+		self.xml_last_game = \
+			self.xmldoc.getElementsByTagName('last_game')[0].childNodes[0]
+		self.xml_last_game_move = \
+			self.xmldoc.getElementsByTagName('last_game_move')[0].childNodes[0]
+		#self.dbg("kn = %s ", dir(self.xml_last_game_move))
+		#self.dbg("kn2 = %s ", self.xml_last_game_move.__dict__)
+		#self.dbg("kn2 = %s ", self.xml_last_game_move.data)
 
 		#self.last_opened_game=self.main_path+"\\last_opened_game"
 		#try:

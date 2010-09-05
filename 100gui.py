@@ -11,7 +11,7 @@ class sgf_viewer(object):
 	#------------- [ global variable ]----------------#
 	dbm=None
 	sgf_files=None
-	last_game_index=0
+	last_game_index=None
 	last_game_move=None
 	fp_debug=None
 	on_debug=True
@@ -160,8 +160,8 @@ class sgf_viewer(object):
 		self.img.blit(self.img_board, (0,0), (0,0))
 		self.print_game_info()
 		if self.sequence and self.cur_seq>=0:
-			self.dbg("handle_redraw: cur_seq=%s", self.cur_seq)
-			self.dbg("sequence=%s", self.sequence[:])
+			#self.dbg("handle_redraw: cur_seq=%s", self.cur_seq)
+			#self.dbg("sequence=%s", self.sequence[:])
 			## display the sequence from 0 to cur_seq
 			while count<=self.cur_seq:
 				my_x=None
@@ -188,8 +188,8 @@ class sgf_viewer(object):
 	#----------------- init() ----------------#
 	def init(self):
 		self.cur_seq = -1
-		self.dbg("last_game_move=%s" % self.last_game_move)
-		self.dbg("cur_seq=%s" % self.cur_seq)
+		#self.dbg("last_game_move=%s" % self.last_game_move)
+		#self.dbg("cur_seq=%s" % self.cur_seq)
 		self.line_read = 0
 		self.show_first_move=0
 		self.total_handicap=0
@@ -284,15 +284,11 @@ class sgf_viewer(object):
 
 	#----------------- process_file() ----------------#
 	def process_file(self, index):
-		self.dbg(self.sgf_files[index])
-		self.dbg(self.sgf_file_path+"\\"+self.sgf_files[index])
-		self.dbg("before self.init, cur_seq=%d" % self.cur_seq)
+		#self.dbg(self.sgf_files[index])
+		#self.dbg(self.sgf_file_path+"\\"+self.sgf_files[index])
 		self.init()
-		self.dbg("after self.init, cur_seq=%d" % self.cur_seq)
 		f=open(self.sgf_file_path+"\\"+self.sgf_files[index])
-		self.dbg("before read_sgf, cur_seq=%d" % self.cur_seq)
 		self.read_sgf(f)
-		self.dbg("process_file: cur_seq=%d" % self.cur_seq)
 		self.handle_redraw(())
 		self.last_game_index=index
 		#print self.sequence[:]
@@ -355,15 +351,33 @@ class sgf_viewer(object):
 		self.last_game_index=self.get_dbm_prop('last_game_index')
 		self.last_game_move=self.get_dbm_prop('last_game_move')
 
+	#----------------- next_game() ----------------#
+	def next_game(self):
+		temp=self.last_game_index+1
+		if temp >= len(sgf_files):
+			print "loop back to first game"
+			temp = 0
+		next_sgf=self.sgf_file_path+"\\"+self.sgf_files[temp]
+		self.dbg("next_sgf = %s" % next_sgf)
+		if os.path.isfile(next_sgf):
+			self.process_file(temp)
+			## assign new value to last_game_index
+			self.last_game_index=temp
+
 	#----------------- exit_app() ----------------#
 	def exit_app(self):
+		self.dbg("sgf_file_path=%s" % self.sgf_file_path)
+		self.dbg("last_game_index=%d" % self.last_game_index)
+		self.dbg("outside")
 		if self.dbm:
-			self.dbm.close()
+			self.dbg("inside")
+			#self.dbm.close()
 			## delete the exisitng file by creating a new one
-			self.dbm=e32dbm.open(self.last_opened_game, "n")
-			self.set_dbm_prop('sgf_file_path', self.sgf_file_path)
-			self.set_dbm_prop('last_game_index', self.last_game_index)
-			self.set_dbm_prop('last_game_move', self.cur_seq)
+			#self.dbm=e32dbm.open(self.last_opened_game, "n")
+			#self.set_dbm_prop('sgf_file_path', self.sgf_file_path)
+			#self.set_dbm_prop('last_game_index', self.last_game_index)
+			#self.set_dbm_prop('last_game_move', self.cur_seq)
+			#self.dbm['sgf_file_path2'] =u"haha"
 			self.dbm.close()
 		if self.on_debug:
 			self.fp_debug.close()
@@ -394,7 +408,6 @@ class sgf_viewer(object):
 		if self.dbm==None:
 			print "file %s open error" % self.last_opened_game
 			sys.exit(2)
-		#self.get_sgf_files()
 		self.read_last_opened_game()
 
 		self.img=graphics.Image.new((360,640))
@@ -416,7 +429,8 @@ class sgf_viewer(object):
 		appuifw.app.exit_key_handler=self.exit_app
 		appuifw.app.screen='large'
 		appuifw.app.menu = [(u"Exit", self.exit_app), (u"Open SGF File", \
-						self.open_file), (u"Change Path", self.change_path)]
+						self.open_file), (u"Change Path", self.change_path),
+						(u"Goto Next Game", self.next_game)]
 		self.canvas.bind(key_codes.EKeySelect, self.press_select)
 		self.canvas.bind(key_codes.EKeyDownArrow, self.press_down)
 		self.canvas.bind(key_codes.EKeyUpArrow, self.press_up)
@@ -424,9 +438,14 @@ class sgf_viewer(object):
 		self.canvas.bind(key_codes.EKeyLeftArrow, self.press_left)
 
 		self.app_lock=e32.Ao_lock()
-		#self.open_file()
-		self.get_sgf_files()
-		self.process_file(self.last_game_index)
+
+		## get last game info if exists
+		#self.read_last_opened_game()
+		self.dbg("last game index=%s" % self.last_game_index)
+		if self.last_game_index!=None:
+			## if last opened game found
+			self.get_sgf_files()
+			self.process_file(self.last_game_index)
 		self.open_last_game=False
 		self.app_lock.wait()
 

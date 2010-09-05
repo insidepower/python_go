@@ -350,21 +350,21 @@ class sgf_viewer(object):
 			#print "self.file_path=%s" % self.file_path
 
 	#----------------- set_dbm_prop() ----------------#
-	def set_dbm_prop(self, key, value):
-		if str(value) == value:
-			## if it is string, cast to unicode
-			value = "u\"%s\"" % value
-			self.dbm[key] = value
-		else:
-			self.dbm[key] = str(value)
+	#def set_dbm_prop(self, key, value):
+	#	if str(value) == value:
+	#		## if it is string, cast to unicode
+	#		value = "u\"%s\"" % value
+	#		self.dbm[key] = value
+	#	else:
+	#		self.dbm[key] = str(value)
 
 	#----------------- get_dbm_prop() ----------------#
-	def get_dbm_prop(self, key):
-		try:
-			return eval(self.dbm[key])
-		except:
-			## item not exit yet, return none
-			return None
+	#def get_dbm_prop(self, key):
+	#	try:
+	#		return eval(self.dbm[key])
+	#	except:
+	#		## item not exit yet, return none
+	#		return None
 
 	#----------------- get_last_game_idx() ----------------#
 	def get_last_game_idx(self):
@@ -381,9 +381,9 @@ class sgf_viewer(object):
 					self.last_game_move = int(self.xml_last_game_move.data)
 					self.dbg("kn:last_game_move=%d", self.last_game_move)
 					break
-		else:
-			self.dbg("self.xml_last_game (%s) does not have valid"
-					"path", self.xml_last_game)
+		#else:
+		#	self.dbg("self.xml_last_game (%s) does not have valid"
+		#			"path", self.xml_last_game)
 
 	#----------------- read_last_opened_game() ----------------#
 	def read_last_opened_game(self):
@@ -402,11 +402,11 @@ class sgf_viewer(object):
 
 	#----------------- next_game() ----------------#
 	def next_game(self):
-		if self.last_game_index:
-			temp=self.last_game_index+1
-			if temp >= len(sgf_files):
-				print "loop back to first game"
-				temp = 0
+		if self.last_game_index!=None:
+			temp=(self.last_game_index+1) % len(self.sgf_files)
+			#if temp >= len(sgf_files):
+			#	print "loop back to first game"
+			#	temp = 0
 			next_sgf=self.sgf_file_path+"\\"+self.sgf_files[temp]
 			self.dbg("next_sgf = %s" % next_sgf)
 			if os.path.isfile(next_sgf):

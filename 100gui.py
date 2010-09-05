@@ -115,6 +115,7 @@ class sgf_viewer(object):
 		if self.on_debug:
 			#print (str % args)
 			self.fp_debug.write((str+'\n') % args)
+			print (str % args)
 
 	#----------------- press_select() ----------------#
 	def press_select(self):
@@ -363,13 +364,37 @@ class sgf_viewer(object):
 			## item not exit yet, return none
 			return None
 
+	#----------------- get_last_game_idx() ----------------#
+	def get_last_game_idx(self):
+		path = os.path.dirname(self.xml_last_game.data)
+		if os.path.isdir(path):
+			self.sgf_file_path = path
+			self.get_sgf_files()
+			basename = os.path.basename(self.xml_last_game.data)
+			for i, line in enumerate(self.sgf_files):
+				#self.dbg("line=%s, basename=%s", line, basename)
+				if basename == line:
+					#self.dbg("basename==line, i=%d", i)
+					self.last_game_index = i
+					break
+		else:
+			self.dbg("self.xml_last_game (%s) does not have valid"
+					"path", self.xml_last_game)
+
 	#----------------- read_last_opened_game() ----------------#
 	def read_last_opened_game(self):
-		temp=self.get_dbm_prop('sgf_file_path')
-		if temp:
-			self.sgf_file_path=temp
-		self.last_game_index=self.get_dbm_prop('last_game_index')
+		#temp=self.get_dbm_prop('sgf_file_path')
+		#if temp:
+		#	self.sgf_file_path=temp
+		#self.last_game_index=self.get_dbm_prop('last_game_index')
+		#self.last_game_move=self.get_dbm_prop('last_game_move')
+		self.get_last_game_idx()
 		self.last_game_move=self.get_dbm_prop('last_game_move')
+		self.dbg("last game index=%s" % self.last_game_index)
+		if self.last_game_index!=None:
+			## if last opened game found
+			self.get_sgf_files()
+			self.process_file(self.last_game_index)
 
 	#----------------- next_game() ----------------#
 	def next_game(self):
@@ -440,16 +465,16 @@ class sgf_viewer(object):
 		#self.dbg("kn2 = %s ", self.xml_last_game.__dict__)
 		#self.dbg("kn2 = %s ", self.xml_last_game.data)
 
-		self.last_opened_game=self.main_path+"\\last_opened_game"
-		try:
-			self.dbm=e32dbm.open(self.last_opened_game, "w")
-		except:
-			# assume file not exist, create new
-			self.dbm=e32dbm.open(self.last_opened_game, "n");
-		if self.dbm==None:
-			print "file %s open error" % self.last_opened_game
-			sys.exit(2)
-		self.read_last_opened_game()
+		#self.last_opened_game=self.main_path+"\\last_opened_game"
+		#try:
+		#	self.dbm=e32dbm.open(self.last_opened_game, "w")
+		#except:
+		#	# assume file not exist, create new
+		#	self.dbm=e32dbm.open(self.last_opened_game, "n");
+		#if self.dbm==None:
+		#	print "file %s open error" % self.last_opened_game
+		#	sys.exit(2)
+		#self.read_last_opened_game()
 
 		self.img=graphics.Image.new((360,640))
 		self.img_board=graphics.Image.open(self.main_path+"\\board.jpg")
@@ -481,12 +506,12 @@ class sgf_viewer(object):
 		self.app_lock=e32.Ao_lock()
 
 		## get last game info if exists
-		#self.read_last_opened_game()
-		self.dbg("last game index=%s" % self.last_game_index)
-		if self.last_game_index!=None:
-			## if last opened game found
-			self.get_sgf_files()
-			self.process_file(self.last_game_index)
+		if self.xml_last_game.data != self.no_game:
+			self.dbg("self.xml_last_game.data=%s", self.xml_last_game.data)
+			self.read_last_opened_game()
+		else:
+			self.dbg("no last game read")
+
 		self.open_last_game=False
 		self.app_lock.wait()
 

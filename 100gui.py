@@ -5,10 +5,18 @@ import re
 import string
 import os
 import sys
+from xml.dom import minidom
 
 #----------------- class sgf_viewer ----------------#
 class sgf_viewer(object):
 	#------------- [ global variable ]----------------#
+	main_path=u"c:\\Data\\python"
+	sgf_file_path=u"c:\\Data\\python"
+	xmldoc = None
+	xml_last_game = None
+	xml_history = None
+	xml_history_last_idx = None
+	xml_file = main_path+"\\go_viewer.xml"
 	dbm=None
 	sgf_files=None
 	last_game_index=None
@@ -30,8 +38,6 @@ class sgf_viewer(object):
 	# sequence = [ white/black, x_coor, y_coor, hide after this sequence]
 	# ['w', 20, 60, 37] = white, x=20, y=60, hide after cur_seq 37
 	sequence = []
-	main_path=u"c:\\Data\\python"
-	sgf_file_path=u"c:\\Data\\python"
 	player_w=u""
 	player_w_rank=u""
 	player_b=u""
@@ -83,6 +89,18 @@ class sgf_viewer(object):
 			 'r':x_min+(x_inc*17),
 			 's':x_min+(x_inc*18),
 			 }
+
+	total_his = 5
+	no_game="0"
+	## we keep the history of last 5 game, in round-robin (fifo)
+	## todo: add/remove favourite game
+	xml_init = ('''<?xml version="1.0" ?>
+	<data>
+	<last_game>%s</last_game>
+	<history>0,0,0,0,0</history>
+	<his_last_idx>%d</his_last_idx>
+	</data>
+	''' % (no_game, total_his))
 
 	#----------------- __init__() ----------------#
 	def __init__(self):
@@ -287,15 +305,17 @@ class sgf_viewer(object):
 		#self.dbg(self.sgf_files[index])
 		#self.dbg(self.sgf_file_path+"\\"+self.sgf_files[index])
 		self.init()
-		f=open(self.sgf_file_path+"\\"+self.sgf_files[index])
+		game_file = self.sgf_file_path+"\\"+self.sgf_files[index]
+		f=open(game_file)
+		self.xml_last_game.data = game_file
 		self.read_sgf(f)
 		self.handle_redraw(())
 		self.last_game_index=index
 		#print self.sequence[:]
 
-	#----------------- open_file() ----------------#
-	def open_file(self):
-		print "open_file"
+	#----------------- open_game() ----------------#
+	def open_game(self):
+		print "open_game"
 		self.get_sgf_files()
 		index=appuifw.selection_list(self.sgf_files)
 		if index!=None:
@@ -353,32 +373,41 @@ class sgf_viewer(object):
 
 	#----------------- next_game() ----------------#
 	def next_game(self):
-		temp=self.last_game_index+1
-		if temp >= len(sgf_files):
-			print "loop back to first game"
-			temp = 0
-		next_sgf=self.sgf_file_path+"\\"+self.sgf_files[temp]
-		self.dbg("next_sgf = %s" % next_sgf)
-		if os.path.isfile(next_sgf):
-			self.process_file(temp)
-			## assign new value to last_game_index
-			self.last_game_index=temp
+		if self.last_game_index:
+			temp=self.last_game_index+1
+			if temp >= len(sgf_files):
+				print "loop back to first game"
+				temp = 0
+			next_sgf=self.sgf_file_path+"\\"+self.sgf_files[temp]
+			self.dbg("next_sgf = %s" % next_sgf)
+			if os.path.isfile(next_sgf):
+				self.process_file(temp)
+				## assign new value to last_game_index
+				self.last_game_index=temp
+		else:
+			print "last_game_index not valid", self.last_game_index
 
 	#----------------- exit_app() ----------------#
 	def exit_app(self):
-		self.dbg("sgf_file_path=%s" % self.sgf_file_path)
-		self.dbg("last_game_index=%d" % self.last_game_index)
-		self.dbg("outside")
-		if self.dbm:
-			self.dbg("inside")
-			#self.dbm.close()
-			## delete the exisitng file by creating a new one
-			#self.dbm=e32dbm.open(self.last_opened_game, "n")
-			#self.set_dbm_prop('sgf_file_path', self.sgf_file_path)
-			#self.set_dbm_prop('last_game_index', self.last_game_index)
-			#self.set_dbm_prop('last_game_move', self.cur_seq)
-			#self.dbm['sgf_file_path2'] =u"haha"
-			self.dbm.close()
+		#self.dbg("sgf_file_path=%s" % self.sgf_file_path)
+		#self.dbg("last_game_index=%d" % self.last_game_index)
+		#self.dbg("outside")
+		#if self.dbm:
+		#	self.dbg("inside")
+		#	#self.dbm.close()
+		#	## delete the exisitng file by creating a new one
+		#	#self.dbm=e32dbm.open(self.last_opened_game, "n")
+		#	#self.set_dbm_prop('sgf_file_path', self.sgf_file_path)
+		#	#self.set_dbm_prop('last_game_index', self.last_game_index)
+		#	#self.set_dbm_prop('last_game_move', self.cur_seq)
+		#	#self.dbm['sgf_file_path2'] =u"haha"
+		#	self.dbm.close()
+
+		## write the xml file
+		xml_fp = open(self.xml_file, "w")
+		xml_fp.write('%s' % self.xmldoc.toxml())
+		xml_fp.close()
+
 		if self.on_debug:
 			self.fp_debug.close()
 		self.app_lock.signal()
@@ -398,6 +427,18 @@ class sgf_viewer(object):
 		self.img_board_path=self.main_path+"\\board.jpg"
 		if not os.path.isfile(self.img_board_path):
 			self.main_path="e:\\Data\\python"
+
+		## check if the xml data file exist, create if non-existence
+		if not os.path.isfile(self.xml_file):
+			xml_fp = open(self.xml_file, "w")
+			xml_fp.write('%s' % self.xml_init)
+			xml_fp.close()
+			self.dbg('writting to xml_file')
+		self.xmldoc = minidom.parse(self.xml_file)
+		self.xml_last_game = self.xmldoc.getElementsByTagName('last_game')[0].childNodes[0]
+		#self.dbg("kn = %s ", dir(self.xml_last_game))
+		#self.dbg("kn2 = %s ", self.xml_last_game.__dict__)
+		#self.dbg("kn2 = %s ", self.xml_last_game.data)
 
 		self.last_opened_game=self.main_path+"\\last_opened_game"
 		try:
@@ -429,7 +470,7 @@ class sgf_viewer(object):
 		appuifw.app.exit_key_handler=self.exit_app
 		appuifw.app.screen='large'
 		appuifw.app.menu = [(u"Exit", self.exit_app), (u"Open SGF File", \
-						self.open_file), (u"Change Path", self.change_path),
+						self.open_game), (u"Change Path", self.change_path),
 						(u"Goto Next Game", self.next_game)]
 		self.canvas.bind(key_codes.EKeySelect, self.press_select)
 		self.canvas.bind(key_codes.EKeyDownArrow, self.press_down)
